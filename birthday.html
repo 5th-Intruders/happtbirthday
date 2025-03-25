@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Birthday Animation</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;700&display=swap');
+        
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'VT323', monospace;
+            cursor: default;
+            background-color: black;
+        }
+        #animation-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            background-color: black;
+        }
+        #background-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            opacity: 0.7;
+        }
+        #text-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 3rem;
+            z-index: 2;
+            text-align: center;
+            background-color: rgba(0,0,0,0.5);
+        }
+        #terminal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #1a1a2e, #16213e);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #00ff00;
+            font-size: 1.5rem;
+            z-index: 3;
+            padding: 2rem;
+            font-family: 'Roboto Mono', monospace;
+            line-height: 1.5;
+            cursor: pointer;
+        }
+        .terminal-window {
+            width: 80%;
+            max-width: 800px;
+            background-color: #0f0f1a;
+            border: 2px solid #00ff00;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #00ff00;
+            padding-bottom: 10px;
+        }
+        .terminal-title {
+            color: #00ff00;
+            font-weight: bold;
+        }
+        .terminal-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .terminal-control {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+        }
+        .terminal-control-red { background-color: #ff5f56; }
+        .terminal-control-yellow { background-color: #ffbd2e; }
+        .terminal-control-green { background-color: #27c93f; }
+        .terminal-content {
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .terminal-line {
+            white-space: pre-wrap;
+            border-right: 2px solid #00ff00;
+            animation: blink-caret 0.7s step-end infinite;
+            word-wrap: break-word;
+        }
+        .terminal-prompt {
+            color: #00ff00;
+            margin-right: 10px;
+        }
+        @keyframes blink-caret {
+            from, to { border-color: transparent; }
+            50% { border-color: #00ff00; }
+        }
+        #slideshow-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 2rem;
+            z-index: 4;
+        }
+    </style>
+</head>
+<body>
+    <div id="animation-container">
+        <video id="background-video" autoplay loop muted>
+            <source src="/144597-784867462_tiny.mp4" type="video/mp4">
+        </video>
+        
+        <div id="text-overlay"></div>
+        <div id="terminal-overlay">
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <div class="terminal-title">Birthday Terminal</div>
+                    <div class="terminal-controls">
+                        <div class="terminal-control terminal-control-red"></div>
+                        <div class="terminal-control terminal-control-yellow"></div>
+                        <div class="terminal-control terminal-control-green"></div>
+                    </div>
+                </div>
+                <div class="terminal-content"></div>
+            </div>
+        </div>
+        <div id="slideshow-overlay"></div>
+    </div>
+
+    <audio id="background-music" loop>
+        <source src="/noncopyright-music-pianos-295174.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="typing-sound">
+        <source src="/noncopyright-music-pianos-295174.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="door-sound">
+        <source src="door-sound.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        class BirthdayAnimation {
+            constructor() {
+                // DOM Elements
+                this.videoEl = document.getElementById('background-video');
+                this.textOverlay = document.getElementById('text-overlay');
+                this.terminalOverlay = document.getElementById('terminal-overlay');
+                this.terminalContent = this.terminalOverlay.querySelector('.terminal-content');
+                this.slideshowOverlay = document.getElementById('slideshow-overlay');
+                
+                // Audio Elements
+                this.backgroundMusic = document.getElementById('background-music');
+                this.typingSound = document.getElementById('typing-sound');
+                this.doorSound = document.getElementById('door-sound');
+                
+                // Animation Stages
+                this.stage = 0;
+                this.texts = [
+                    'Happy Birthday Gungun',
+                    'Happy Birthday Astha',
+                    'Happy Birthday to a Girl on this planet', 
+                    'Happy Birthday a 8th grader',
+                    'Happy Birthday to my older sister'
+                ];
+                this.terminalMessages = [
+                    'tap to continue...',
+                    'Yo, its nice that you saw it..',
+                    'Just create it to wish you ...',
+                    'Ooo ok its time for me to become bat man',
+                    'see ya soon'
+                ];
+                this.slideshowTexts = [
+                    'Create by kartik and bordom',
+                    'Special thanks to low time',
+                    'head of Html...',
+                    'have a Great day or night ...',
+                    'Birthday Sequence Complete.'
+                ];
+                
+                // Bind methods
+                this.handleTerminalClick = this.handleTerminalClick.bind(this);
+                
+                // Start animation
+                this.startAnimation();
+            }
+            
+            startAnimation() {
+                // Start background music
+                this.backgroundMusic.play();
+                this.videoEl.play();
+                
+                // Start with first few text stages automatically
+                this.autoAdvanceTextStages();
+            }
+            
+            autoAdvanceTextStages() {
+                const advanceInterval = setInterval(() => {
+                    this.advanceStage();
+                    
+                    // Stop auto-advancing at terminal stage
+                    if (this.stage === 5) {
+                        clearInterval(advanceInterval);
+                        this.setupTerminalInteraction();
+                    }
+                }, 5000);  // Slowed down from 3000 to 5000
+            }
+            
+            setupTerminalInteraction() {
+                // Add click event to terminal
+                this.terminalOverlay.addEventListener('click', this.handleTerminalClick);
+                
+                // Automatically show first terminal message
+                this.advanceStage();
+            }
+            
+            handleTerminalClick() {
+                // Only advance if we're in terminal stages
+                if (this.stage >= 6 && this.stage < 11) {
+                    this.advanceStage();
+                }
+            }
+            
+            typeText(text, element, isTerminal = false, prompt = '') {
+                return new Promise((resolve) => {
+                    element.textContent = '';
+                    
+                    if (isTerminal) {
+                        const promptSpan = document.createElement('span');
+                        promptSpan.classList.add('terminal-prompt');
+                        promptSpan.textContent = prompt;
+                        element.appendChild(promptSpan);
+                    }
+                    
+                    const textSpan = document.createElement('span');
+                    textSpan.classList.add('terminal-line');
+                    element.appendChild(textSpan);
+                    
+                    let index = 0;
+                    
+                    const typingInterval = setInterval(() => {
+                        textSpan.textContent += text[index];
+                        this.typingSound.currentTime = 0;
+                        this.typingSound.play();
+                        
+                        if (index >= text.length - 1) {
+                            clearInterval(typingInterval);
+                            resolve();
+                        }
+                        index++;
+                    }, 100);  // Slowed down typing
+                });
+            }
+            
+            async advanceStage() {
+                switch(this.stage) {
+                    case 0:
+                    case 1:
+                    case 2:
+                    case 3:
+                    case 4:
+                        await this.typeText(this.texts[this.stage], this.textOverlay);
+                        break;
+                    
+                    case 5:
+                        // Door sound and transition
+                        this.doorSound.play();
+                        this.textOverlay.style.display = 'none';
+                        this.terminalOverlay.style.display = 'flex';
+                        break;
+                    
+                    case 6:
+                    case 7:
+                    case 8:
+                    case 9:
+                    case 10:
+                        await this.typeText(
+                            this.terminalMessages[this.stage - 6], 
+                            this.terminalContent,
+                            true,
+                            '> Birthday:root $'
+                        );
+                        break;
+                    
+                    case 11:
+                        this.terminalOverlay.style.display = 'none';
+                        this.slideshowOverlay.style.display = 'flex';
+                        break;
+                    
+                    case 12:
+                    case 13:
+                    case 14:
+                    case 15:
+                        await this.typeText(
+                            this.slideshowTexts[this.stage - 12], 
+                            this.slideshowOverlay
+                        );
+                        break;
+                }
+                
+                this.stage++;
+            }
+        }
+
+        // Initialize the animation when page loads
+        window.addEventListener('load', () => {
+            new BirthdayAnimation();
+        });
+    </script>
+</body>
+</html>
